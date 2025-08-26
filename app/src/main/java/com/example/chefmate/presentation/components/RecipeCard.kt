@@ -66,7 +66,6 @@ fun RecipeCard(
         shape = RoundedCornerShape(12.dp)
     ) {
         Column {
-            // Image section with overlay elements
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -97,7 +96,8 @@ fun RecipeCard(
                         )
                     },
                     modifier = Modifier
-                        .align(Alignment.TopStart),
+                        .align(Alignment.TopStart)
+                        .padding(start =8.dp),
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                         labelColor = MaterialTheme.colorScheme.onPrimary

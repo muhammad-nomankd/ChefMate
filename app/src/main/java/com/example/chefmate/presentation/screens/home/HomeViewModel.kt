@@ -2,6 +2,7 @@ package com.example.chefmate.presentation.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.chefmate.domain.model.Recipe
 import com.example.chefmate.domain.model.RecipeCategory
 import com.example.chefmate.domain.repository.RecipeRepository
 import com.example.chefmate.domain.usecase.GetAllRecipeUseCase
@@ -9,12 +10,20 @@ import com.example.chefmate.domain.usecase.GetFavoriteRecipeUseCase
 import com.example.chefmate.domain.usecase.GetRecipesForCategory
 import com.example.chefmate.domain.usecase.SearchRecipeUseCase
 import com.example.chefmate.domain.usecase.ToggleFavoriteUseCase
+import com.example.chefmate.presentation.RecipeEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -32,6 +41,9 @@ class HomeViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
+    private val _event = MutableSharedFlow<RecipeEvent>(extraBufferCapacity = 1)
+    val event: SharedFlow<RecipeEvent> = _event.asSharedFlow()
+
     init {
         handleUiIntent(HomeUiIntent.LoadRecipes)
     }
@@ -45,12 +57,25 @@ class HomeViewModel @Inject constructor(
 
     }
 
+    val recipes: StateFlow<List<Recipe>> = repository.getAllRecipes()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Lazily,
+            initialValue = emptyList()
+        )
+
      fun selectCategory(category: RecipeCategory) {
         viewModelScope.launch {
             _uiState.update { it.copy(selectedCategory = category) }
-            getCategoriesUseCase(category).collect { recipes ->
-                _uiState.update { it.copy(recipes = recipes) }
-            }
+            getCategoriesUseCase(category)
+                .onStart { _uiState.update { it.copy(isLoading = true) } }
+                .catch {
+                    _uiState.update { it.copy(errorMessage = it.errorMessage) }
+                }
+                .collect { recipes ->
+                    _event.emit(RecipeEvent.showToast("Category selected"))
+                    _uiState.update { it.copy(recipes = recipes) }
+                }
         }
     }
 
@@ -58,7 +83,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 toggleFavoriteUseCase(recipeId)
+                _event.emit(RecipeEvent.showToast("Favorite toggled"))
+
             } catch (e: Exception) {
+                _event.emit(RecipeEvent.showToast("Error toggling favorite"))
                 _uiState.update { it.copy(errorMessage = e.message) }
             }
         }
@@ -80,6 +108,7 @@ class HomeViewModel @Inject constructor(
                 }
 
                 _uiState.update {
+                    _event.emit(RecipeEvent.showToast("Recipes loaded"))
                     it.copy(
                         recipes = filteredRecipes,
                         totalRecipes = allRecipes.size,

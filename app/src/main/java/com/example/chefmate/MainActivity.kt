@@ -22,10 +22,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.chefmate.domain.model.Recipe
 import com.example.chefmate.domain.model.Screen
 import com.example.chefmate.presentation.MainViewModel
@@ -36,6 +38,7 @@ import com.example.chefmate.presentation.screens.home.HomeViewModel
 import com.example.chefmate.presentation.screens.search.SearchScreen
 import com.example.chefmate.presentation.theme.ChefMateTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
@@ -48,7 +51,7 @@ class MainActivity : ComponentActivity() {
                 val addRecipeViewModel: AddRecipeViewModel = hiltViewModel()
                 val mainViewModel: MainViewModel = hiltViewModel()
                 val homeViewModel: HomeViewModel = hiltViewModel()
-                val recipes = homeViewModel.uiState.collectAsState().value.recipes
+                val recipes by homeViewModel.recipes.collectAsState()
                 val backstack = mainViewModel.backstack
                 val categories = homeViewModel.uiState.collectAsState().value.selectedCategory
                 val favoriteRecipes = recipes.filter { it.isFavorite }

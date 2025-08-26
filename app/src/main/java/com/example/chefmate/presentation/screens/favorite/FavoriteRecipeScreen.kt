@@ -72,7 +72,6 @@ fun FavoritesScreen(
                 }
             }
         } else {
-            // Empty favorites state
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -84,7 +83,7 @@ fun FavoritesScreen(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
